@@ -3,6 +3,7 @@ use serde::{Serialize, Deserialize};
 
 use super::utils;
 
+
 pub struct ClockifyClient<'clo> {
     api_key: &'clo String,
     workspace_id: &'clo String,
@@ -19,6 +20,7 @@ impl<'clo> ClockifyClient<'clo> {
         }
     }
 
+    #[allow(dead_code)]
     pub async fn get_user_id(&self) -> Result<String, reqwest::Error> {
         let url = format!("{}/user", self.base_url());
 
@@ -40,6 +42,7 @@ impl<'clo> ClockifyClient<'clo> {
         Ok(user_id)
     }
 
+    #[allow(dead_code)]
     pub async fn list_tasks(&self, from: &str, to: &str) -> Result<Vec<TimeEntryReport>, reqwest::Error> {
         let user_id = self.get_user_id().await.unwrap();
 
@@ -65,6 +68,7 @@ impl<'clo> ClockifyClient<'clo> {
         }
     }
 
+    #[allow(dead_code)]
     pub async fn get_detailed_report(&self, from: &str, to: &str) -> Result<Report, reqwest::Error> {
         let url = format!(
             "{}/workspaces/{}/reports/detailed",
