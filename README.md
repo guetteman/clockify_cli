@@ -9,3 +9,6 @@ Make sure you have the following variables exported in your bash
 export CLOCKIFY_API_KEY=
 export CLOCKIFY_WORKSPACE_ID=
 ```
+
+Download the binary file from
+[here](https://github.com/guetteman/clockify_cli/tree/main/dist/clockify)
