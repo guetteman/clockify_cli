@@ -40,6 +40,31 @@ impl<'clo> ClockifyClient<'clo> {
         Ok(user_id)
     }
 
+    pub async fn list_tasks(&self, from: &str, to: &str) -> Result<Vec<TimeEntryReport>, reqwest::Error> {
+        let user_id = self.get_user_id().await.unwrap();
+
+        let url = format!(
+            "{}/workspaces/{}/user/{}/time-entries?start={}&end={}&hydrated=1&page-size=5000",
+            self.base_url(),
+            self.workspace_id,
+            user_id,
+            from,
+            to,
+        );
+
+        let response = self
+            .request(Method::GET, url)
+            .send()
+            .await?
+            .json::<Vec<TimeEntryReport>>()
+            .await;
+
+        match response {
+            Ok(entries) => Ok(entries),
+            Err(_) => utils::print_error_and_exit(format!("There was an error getting the time entries")),
+        }
+    }
+
     pub async fn get_detailed_report(&self, from: &str, to: &str) -> Result<Report, reqwest::Error> {
         let url = format!(
             "{}/workspaces/{}/reports/detailed",
@@ -96,6 +121,47 @@ struct User {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct TimeEntryReport {
+    #[serde(rename = "projectId")]
+    pub project_id: String,
+
+    pub description: String,
+
+    pub project: Project,
+}
+
+impl PartialEq for TimeEntryReport {
+    fn eq(&self, other: &Self) -> bool {
+        self.description.eq(&other.description)
+    }
+}
+
+impl Ord for TimeEntryReport {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.description.cmp(&other.description)
+    }
+}
+
+impl Eq for TimeEntryReport {}
+
+impl PartialOrd for TimeEntryReport {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.description.partial_cmp(&other.description)
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Project {
+    pub id: String,
+
+    pub name: String,
+
+    #[serde(rename = "clientName")]
+    pub client_name: String,
+}
+
+
+#[derive(Debug, Serialize, Deserialize)]
 struct ReportParams<'clo> {
     #[serde(rename = "dateRangeStart")]
     start: &'clo str,
@@ -125,7 +191,6 @@ pub struct Report {
     #[serde(rename = "timeentries")]
     pub time_entries: Vec<TimeEntry>,
 }
-
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Totals {

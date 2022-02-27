@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use commands::timesheet;
+use commands::{timesheet, list_tasks};
 
 mod commands;
 
@@ -24,7 +24,14 @@ enum Commands {
         #[clap(name = "working days")]
         #[clap(help = "Working days for the specified month. Ex: 20")]
         working_days: i32,
-    }
+    },
+    #[clap(arg_required_else_help = true)]
+    #[clap(about = "Timesheet table of the selected month")]
+    ListTasks {
+        #[clap(name = "month")]
+        #[clap(help = "3 letters month. Ex: JAN")]
+        month: String,
+    },
 }
 
 #[tokio::main]
@@ -34,6 +41,9 @@ async fn main() {
     match &args.command {
         Commands::Timesheet { month, working_days } => {
            timesheet::handle(month, working_days).await;
+        },
+        Commands::ListTasks { month } => {
+            list_tasks::handle(month).await;
         }
     }
 }

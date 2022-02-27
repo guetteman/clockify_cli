@@ -22,3 +22,4 @@ pub fn get_env_var(name: String) -> String {
         },
     }
 }
+

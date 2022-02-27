@@ -1,12 +1,11 @@
 use std::collections::HashMap;
-use std::str::FromStr;
 use chrono::prelude::*;
 use tabled::{Row, Format};
 use tabled::{Alignment, Full, Modify, builder::Builder, Style};
 use math::round;
 use owo_colors::OwoColorize;
 
-use support::Month;
+use support::month;
 use support::utils;
 use support::ClockifyClient;
 use support::clockify::{Report, TimeEntry};
@@ -15,10 +14,10 @@ use support::clockify::{Report, TimeEntry};
 mod support;
 
 pub async fn handle(month: &String, working_days: &i32) {
-    let valid_month = validate_month(month);
     validate_working_days(working_days);
 
-    let (from, to) = get_time_range(valid_month.clone());
+    let valid_month = month::validate_month(month);
+    let (from, to) = month::get_time_range(valid_month.clone());
 
     let api_key = utils::get_env_var(format!("CLOCKIFY_API_KEY"));
     let workspace_id = utils::get_env_var(format!("CLOCKIFY_WORKSPACE_ID"));
@@ -26,23 +25,14 @@ pub async fn handle(month: &String, working_days: &i32) {
     let client = ClockifyClient::new(&api_key, &workspace_id);
 
     let report = client.get_detailed_report(
-            &from.to_rfc3339_opts(SecondsFormat::Millis, true), 
-            &to.to_rfc3339_opts(SecondsFormat::Millis, true)
-        ).await.unwrap();
+        &from.to_rfc3339_opts(SecondsFormat::Millis, true), 
+        &to.to_rfc3339_opts(SecondsFormat::Millis, true)
+    ).await.unwrap();
 
     println!(" ");
 
     println!("From {} to {}", from.to_string(), to.to_string());
     render(&report, &working_days)
-}
-
-fn get_time_range(month: Month) -> (DateTime<chrono::Utc>, DateTime<chrono::Utc>)  {
-    let month_int = month as u32;
-    let current_year = Utc::now().year();
-    let start = Utc.ymd(current_year, month_int, 1).and_hms(0,0,0);
-    let end = start.with_month(month_int + 1).unwrap();
-
-    (start, end)
 }
 
 fn render(report: &Report, working_days: &i32) {
@@ -97,16 +87,6 @@ fn render(report: &Report, working_days: &i32) {
     )
 }
 
-fn validate_month(month: &String) -> Month {
-    match Month::from_str(month) {
-        Ok(month) => month,
-        Err(_) => {
-            utils::print_error_and_exit(
-                format!("\"{}\" is not a valid month", &month)
-            );
-        },
-    }
-}
 
 fn validate_working_days(working_days: &i32) -> &i32 {
     if working_days > &31 || working_days < &1 {

@@ -1,4 +1,7 @@
 use std::str::FromStr;
+use chrono::prelude::*;
+
+use super::utils;
 
 #[derive(Debug, Clone)]
 pub enum Month {
@@ -40,3 +43,22 @@ impl FromStr for Month {
 
 pub struct MonthError;
 
+pub fn get_time_range(month: Month) -> (DateTime<chrono::Utc>, DateTime<chrono::Utc>)  {
+    let month_int = month as u32;
+    let current_year = Utc::now().year();
+    let start = Utc.ymd(current_year, month_int, 1).and_hms(0,0,0);
+    let end = start.with_month(month_int + 1).unwrap();
+
+    (start, end)
+}
+
+pub fn validate_month(month: &String) -> Month {
+    match Month::from_str(month) {
+        Ok(month) => month,
+        Err(_) => {
+            utils::print_error_and_exit(
+                format!("\"{}\" is not a valid month", &month)
+            );
+        },
+    }
+}
