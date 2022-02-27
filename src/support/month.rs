@@ -1,18 +1,19 @@
 use std::str::FromStr;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Month {
-    JAN,
-    FEB,
-    MAR,
-    APR,
-    JUN,
-    JUL,
-    AUG,
-    SEP,
-    OCT,
-    NOV,
-    DEC,
+    JAN = 1,
+    FEB = 2,
+    MAR = 3,
+    APR = 4,
+    MAY = 5,
+    JUN = 6,
+    JUL = 7,
+    AUG = 8,
+    SEP = 9,
+    OCT = 10,
+    NOV = 11,
+    DEC = 12,
 }
 
 impl FromStr for Month {
@@ -24,6 +25,7 @@ impl FromStr for Month {
             "FEB" => Ok(Self::FEB),
             "MAR" => Ok(Self::MAR),
             "APR" => Ok(Self::APR),
+            "MAY" => Ok(Self::MAY),
             "JUN" => Ok(Self::JUN),
             "JUL" => Ok(Self::JUL),
             "AUG" => Ok(Self::AUG),

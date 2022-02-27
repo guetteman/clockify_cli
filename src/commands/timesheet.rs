@@ -1,7 +1,10 @@
 use std::collections::HashMap;
 use std::str::FromStr;
-use tabled::{Style, Tabled, Table};
+use chrono::prelude::*;
+use tabled::{Row, Format};
+use tabled::{Alignment, Full, Modify, builder::Builder, Style};
 use math::round;
+use owo_colors::OwoColorize;
 
 use support::Month;
 use support::utils;
@@ -12,26 +15,41 @@ use support::clockify::{Report, TimeEntry};
 mod support;
 
 pub async fn handle(month: &String, working_days: &i32) {
-    validate_month(month);
+    let valid_month = validate_month(month);
     validate_working_days(working_days);
+
+    let (from, to) = get_time_range(valid_month.clone());
 
     let api_key = utils::get_env_var(format!("CLOCKIFY_API_KEY"));
     let workspace_id = utils::get_env_var(format!("CLOCKIFY_WORKSPACE_ID"));
 
     let client = ClockifyClient::new(&api_key, &workspace_id);
 
-    let from = "2022-01-01T00:00:00.000";
-    let to = "2022-01-31T23:59:59.000";
+    let report = client.get_detailed_report(
+            &from.to_rfc3339_opts(SecondsFormat::Millis, true), 
+            &to.to_rfc3339_opts(SecondsFormat::Millis, true)
+        ).await.unwrap();
 
-    let report = client.get_detailed_report(&from, &to).await.unwrap();
+    println!(" ");
 
+    println!("From {} to {}", from.to_string(), to.to_string());
     render(&report, &working_days)
+}
+
+fn get_time_range(month: Month) -> (DateTime<chrono::Utc>, DateTime<chrono::Utc>)  {
+    let month_int = month as u32;
+    let current_year = Utc::now().year();
+    let start = Utc.ymd(current_year, month_int, 1).and_hms(0,0,0);
+    let end = start.with_month(month_int + 1).unwrap();
+
+    (start, end)
 }
 
 fn render(report: &Report, working_days: &i32) {
     let mut project_entries: HashMap<String, Vec<&TimeEntry>> = HashMap::new();
-    let mut project_total_entries: Vec<ReportRow> = Vec::new();
     let time_entries = &report.time_entries;
+    let mut table = Builder::default()
+        .set_header(["Project", "Total (h)"]);
 
     time_entries.iter().for_each(|entry| {
         if project_entries.contains_key(&entry.project_id) {
@@ -43,7 +61,7 @@ fn render(report: &Report, working_days: &i32) {
         }
     });
 
-    project_entries.into_iter().for_each(|(_key, entries)| {
+    for (_key, entries) in project_entries.into_iter() {
         let total = round::half_up(entries.clone().into_iter()
             .fold(0.0, |result, entry| {
                 result + (entry.time_interval.duration as f64 / 3600.0)
@@ -51,39 +69,32 @@ fn render(report: &Report, working_days: &i32) {
 
         let project = entries[0].clone();
 
-        project_total_entries.push(
-            ReportRow {
-                project_id: project.project_id.clone(),
-                project_name: project.project_name.clone(),
-                client_name: project.client_name.clone(),
-                total,
-            }
-        );
-    });
+        table = table.add_row([
+            format!("{} - {}", project.client_name, project.project_name),
+            format!("{}", total)
+        ]);
+    };
 
-    println!(" ");
+    let total = round::half_up(report.totals[0].total_time as f64 / 3600.0, 2);
+    let working_hours = working_days * 8;
+    let mpb = round::half_up(total - working_hours as f64, 2);
+
+    table = table
+        .add_row(["", ""])
+        .add_row(["", ""])
+        .add_row(["Working hours", &format!("{}", working_hours)])
+        .add_row(["MPB", &format!("{}", mpb)])
+        .add_row(["Total", &format!("{}", total)]);
 
     println!(
         "{}", 
-        Table::new(project_total_entries)
-            .with(Style::psql())
-            .to_string()
+        table
+            .build()
+            .with(Style::dots())
+            .with(Modify::new(Full).with(Alignment::left()))
+            .with(Modify::new(Row(0..1)).with(Format(|s| s.green().to_string())))
+            .with(Modify::new(Row(1..)).with(Format(|s| s.default_color().to_string())))
     )
-}
-
-#[derive(Tabled, Debug)]
-struct ReportRow {
-    #[header(hidden = true)]
-    project_id: String,
-
-    #[header("Client")]
-    client_name: String,
-
-    #[header("Project name")]
-    project_name: String,
-
-    #[header("total (h)")]
-    total: f64,
 }
 
 fn validate_month(month: &String) -> Month {

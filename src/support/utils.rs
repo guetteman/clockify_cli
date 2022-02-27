@@ -1,11 +1,11 @@
-use termion::color;
 use std::env::var;
+use owo_colors::{OwoColorize, colors::Red};
 
 pub fn print_error(message: String) {
+    let internal_message = format!(" {} ", message);
     println!(
-        "{} {} ",
-        color::Bg(color::Red),
-        message
+        "{}",
+        internal_message.bg::<Red>(),
     );
 }
 
