@@ -12,3 +12,20 @@ export CLOCKIFY_WORKSPACE_ID=
 
 Download the binary file from
 [here](https://github.com/guetteman/clockify_cli/tree/main/dist/clockify)
+
+## List tasks
+
+This command lists the tasks for the provided month:
+
+```
+clockify list-tasks FEB
+```
+
+## Timesheet
+
+This command shows how much time you worked in a project for the provided month.
+It also shows the MPB based on the "working days" parameter:
+
+```
+clockify timesheet FEB 20
+```
